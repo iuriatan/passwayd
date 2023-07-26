@@ -1,0 +1,95 @@
+#!/bin/bash
+command -v curl >/dev/null 2>&1 || {
+    echo >&2 "Command \`curl\` not found. Passway needs it to query server."
+    exit 1
+}
+
+usage() {
+    echo "Usage:"
+    echo "  $0 [OPTIONS] <passway_name> <passway_server_url>"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -c <file>     Set passways as described by config file"
+    echo "  -g            Get passway info from server (default)"
+    echo "  -i <ip>       (implies -s) Set passway IP address. Defaults to"
+    echo "                clients address"
+    echo "  -p <port>     (implies -s) Adds port information to passway"
+    echo "  -s            Set/Update passway info on server"
+    exit 1
+}
+
+inaccessible-file() {
+    echo "Cannot read file \`$1\`"
+    exit 2
+}
+
+get-field() {
+    echo "$2" | sed -E 's/[[:blank:]]+/,/g' | cut -d ',' -f $1
+}
+
+passway-set() {
+    NAME="$1"
+    IP="$(echo $2 | grep '^[^-]')"
+    PORT="$(echo $3 | grep '^[^-]')"
+    SERVER="$4"
+    PORT_STR=$(test -n "$PORT" -o "$PORT" = "-" && echo ",\"port\":\"$PORT\"")
+    IP_STR=$(test -n "$IP" -o "$IP" = "-" && echo ",\"ip\":\"$IP\"")
+    curl -X POST \
+        -H "Content-Type: application/json" \
+        -d "{\"name\":\"$NAME\"${IP_STR}${PORT_STR}}" \
+        "$SERVER"
+}
+
+OP="get"
+while getopts 'c:gi:sp:' opt; do
+    case "$opt" in 
+        c)
+            OP="file"
+            FILE="$OPTARG"
+            ;;
+        g)
+            OP="get"
+            ;;
+        i)
+            OP="set"
+            IP="$OPTARG"
+            ;;
+        s)
+            OP="set"
+            ;;
+        p)
+            OP="set"
+            PORT="$OPTARG"
+            ;;
+    esac
+done
+shift "$(($OPTIND -1))"
+
+if [ "$OP" != "file" ]; then
+    test -z "$1" -o -z "$2" && usage
+    NAME="$1"
+    SERVER="$2"
+
+    if [ "$OP" = "set" ]; then
+        passway-set $NAME $IP $PORT $SERVER
+    elif [ "$OP" = "get" ]; then
+        curl "$SERVER/$NAME"
+    else
+        usage
+    fi
+fi
+
+if [ "$OP" = "file" ]; then
+    test -r "$FILE" || inaccessible-file $FILE
+    IFS=$'\n'
+    for line in $(cat "$FILE" | grep '^[^#]'); do
+        NAME="$(get-field 1 "$line")"
+        IP="$(get-field 2 "$line")"
+        PORT="$(get-field 3 "$line")"
+        SERVER="$(get-field 4 "$line")"
+        passway-set $NAME $IP $PORT $SERVER
+    done
+else
+    usage
+fi
+
