@@ -13,6 +13,7 @@ import (
 const DEFAULT_PORT = "3458"
 const DEFAULT_HOST = "0.0.0.0"
 const MAX_NAME_SIZE = 50
+const KEY_CHARS = "A-Za-z0-9-_"
 
 type Passway struct {
 	Name string `json:"name"`
@@ -52,7 +53,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pattern := fmt.Sprintf("^\\/?[a-zA-Z0-9]{1,%d}\\/?$", MAX_NAME_SIZE)
+	pattern := fmt.Sprintf("^\\/?[%s]{1,%d}\\/?$", KEY_CHARS, MAX_NAME_SIZE)
 	re := regexp.MustCompile(pattern)
 	clientIP := strings.Split(r.RemoteAddr, ":")[0]
 
@@ -70,6 +71,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		if err != nil || !re.Match([]byte(req.Name)) {
 			http.Error(w, "Bad request", http.StatusBadRequest)
 			return
+		}
+		if req.IP == "" {
+			req.IP = clientIP
 		}
 
 		logMsg := fmt.Sprintf("Update from %v: (%s) %+v", clientIP, req.Name, req.String())
