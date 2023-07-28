@@ -6,6 +6,7 @@ command -v curl >/dev/null 2>&1 || {
 
 usage() {
     echo "Usage:"
+    echo "  $0 -c <config_file>"
     echo "  $0 [OPTIONS] <passway_name> <passway_server_url>"
     echo ""
     echo "OPTIONS:"
@@ -77,19 +78,16 @@ if [ "$OP" != "file" ]; then
     else
         usage
     fi
+    exit
 fi
 
-if [ "$OP" = "file" ]; then
-    test -r "$FILE" || inaccessible-file $FILE
-    IFS=$'\n'
-    for line in $(cat "$FILE" | grep '^[^#]'); do
-        NAME="$(get-field 1 "$line")"
-        IP="$(get-field 2 "$line")"
-        PORT="$(get-field 3 "$line")"
-        SERVER="$(get-field 4 "$line")"
-        passway-set $NAME $IP $PORT $SERVER
-    done
-else
-    usage
-fi
-
+test -n "$IP" -o -n "$PORT" && usage
+test -r "$FILE" || inaccessible-file $FILE
+IFS=$'\n'
+for line in $(cat "$FILE" | grep '^[^#]'); do
+    NAME="$(get-field 1 "$line")"
+    IP="$(get-field 2 "$line")"
+    PORT="$(get-field 3 "$line")"
+    SERVER="$(get-field 4 "$line")"
+    passway-set $NAME $IP $PORT $SERVER
+done
