@@ -1,0 +1,11 @@
+[Unit]
+Description=passway host address informer
+After=network.target auditd.service
+
+[Service]
+Type=oneshot
+ExecStart=passway -c /etc/passway.conf
+
+[Install]
+WantedBy=multi-user.target
+Alias=passway.service

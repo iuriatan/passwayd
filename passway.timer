@@ -1,0 +1,10 @@
+[Unit]
+Description=Inform passways 3 minutes after boot and then hourly
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=1h
+Unit=passway.service
+
+[Install]
+WantedBy=timers.target

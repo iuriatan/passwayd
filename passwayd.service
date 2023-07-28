@@ -1,0 +1,14 @@
+[Unit]
+Description=Passway host address server
+After=network.target auditd.service
+
+[Service]
+Type=simple
+Restart=always
+DynamicUser=yes
+ProtectHome=yes
+ExecStart=passwayd
+
+[Install]
+WantedBy=multi-user.target
+Alias=passwayd.service
